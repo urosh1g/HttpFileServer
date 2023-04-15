@@ -1,2 +1,8 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+﻿namespace MyHttpFileServer;
+
+public class MainClass {
+    public static void Main(string[] args){
+        HttpFileServer fileServer = new HttpFileServer("localhost");
+        fileServer.Start();
+    }
+}
