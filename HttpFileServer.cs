@@ -3,12 +3,15 @@ using System.IO;
 using System.Net;
 using System.Text;
 
+using Middleware;
+
 namespace MyHttpFileServer;
 
-class HttpFileServer {
+class HttpFileServer : AbstractMiddleware {
     short port;
     string address;
     HttpListener listener;
+    AbstractMiddleware middlewares;
     bool stop = false;
     string[] fileNames = null!;
 
@@ -22,6 +25,14 @@ class HttpFileServer {
 
         listener = new HttpListener();
         listener.Prefixes.Add($"http://{address}:{port}/");
+        middlewares = this;
+        middlewares.next = null;
+    }
+
+    public HttpFileServer Use<T>(T middleware) where T : AbstractMiddleware {
+        middleware.next = middlewares;
+        middlewares = middleware;
+        return this;
     }
 
     public void Start() {
@@ -30,8 +41,8 @@ class HttpFileServer {
             Console.WriteLine($"Started listening @ http://{address}:{port}");
             while(!stop) {
                 var context = listener.GetContext();
-                ThreadPool.QueueUserWorkItem((state) => {
-                    HandleRequest(context);
+                ThreadPool.QueueUserWorkItem(async (state) => {
+                    await Task.Run(() => middlewares.HandleRequest(context));
                 });
             }
         }
@@ -40,7 +51,7 @@ class HttpFileServer {
         }
     }
 
-    private async void HandleRequest(HttpListenerContext ctx) {
+    public override async Task HandleRequest(HttpListenerContext ctx) {
         var req = ctx.Request;
         var res = ctx.Response;
         string fileName = req.RawUrl!.Split("/")[1];
@@ -53,13 +64,10 @@ class HttpFileServer {
             res.ContentLength64 = responseBody.Length;
             res.OutputStream.Write(Encoding.ASCII.GetBytes(responseBody));
             res.OutputStream.Close();
-            return;
         }
-
-        Console.WriteLine("Handling request");
-        Console.WriteLine($"{ctx.Request.HttpMethod} {ctx.Request.RawUrl}");
-        await Task.Run(() => WriteFile(res, fileName));
-        Console.WriteLine("Sending response");
+        else {
+            await Task.Run(() => WriteFile(res, fileName));
+        } 
     }
 
     private void WriteFile(HttpListenerResponse response, string fileName){
