@@ -4,6 +4,7 @@ using System.Net;
 using System.Text;
 
 using Middleware;
+using Helpers;
 
 namespace MyHttpFileServer;
 
@@ -42,7 +43,10 @@ class HttpFileServer : AbstractMiddleware {
             while(!stop) {
                 var context = listener.GetContext();
                 ThreadPool.QueueUserWorkItem(async (state) => {
-                    await Task.Run(() => middlewares.HandleRequest(context));
+                    Context fakeContext = new Context(context);
+                    await Task.Run(() => middlewares.HandleRequest(fakeContext));
+                    context.Response.OutputStream.Write(fakeContext.outputStream.GetBuffer());
+                    context.Response.Close();
                 });
             }
         }
@@ -51,9 +55,9 @@ class HttpFileServer : AbstractMiddleware {
         }
     }
 
-    public override async Task HandleRequest(HttpListenerContext ctx) {
-        var req = ctx.Request;
-        var res = ctx.Response;
+    public override async Task HandleRequest(Context ctx) {
+        var req = ctx.httpContext.Request;
+        var res = ctx.httpContext.Response;
         string fileName = req.RawUrl!.Split("/")[1];
         string responseBody;
 
@@ -62,20 +66,18 @@ class HttpFileServer : AbstractMiddleware {
             res.StatusCode = (int)HttpStatusCode.NotFound;
             responseBody = $"cannot find {fileName}";
             res.ContentLength64 = responseBody.Length;
-            res.OutputStream.Write(Encoding.ASCII.GetBytes(responseBody));
-            res.OutputStream.Close();
+            ctx.outputStream.Write(Encoding.ASCII.GetBytes(responseBody));
         }
         else {
-            await Task.Run(() => WriteFile(res, fileName));
+            await Task.Run(() => WriteFile(ctx, fileName));
         } 
     }
 
-    private void WriteFile(HttpListenerResponse response, string fileName){
+    private void WriteFile(Context context, string fileName){
         try {
             var fileContents = File.ReadAllBytes(fileName);
-            response.ContentLength64 = fileContents.Length;
-            response.OutputStream.Write(fileContents);
-            response.OutputStream.Close();
+            context.httpContext.Response.ContentLength64 = fileContents.Length;
+            context.outputStream.Write(fileContents);
         }
         catch(Exception ex){
             Console.WriteLine(ex.Message);
