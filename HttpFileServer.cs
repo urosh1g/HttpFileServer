@@ -62,9 +62,17 @@ class HttpFileServer : AbstractMiddleware {
         string responseBody;
 
         if(!fileNames.Contains(fileName)) {
-            res.ContentType = "text/plain";
-            res.StatusCode = (int)HttpStatusCode.NotFound;
-            responseBody = $"cannot find {fileName}";
+            res.ContentType = "text/html";
+            responseBody = @"
+            <html>
+                <head>
+                    <title>File list</title>
+                </head>
+                <body>";
+            foreach(var file in fileNames){
+                responseBody += $"<a href='http://{address}:{port}/{file}'>{file}</a>\n";
+            }
+            responseBody += "</body></html>";
             res.ContentLength64 = responseBody.Length;
             ctx.outputStream.Write(Encoding.ASCII.GetBytes(responseBody));
         }
@@ -77,6 +85,7 @@ class HttpFileServer : AbstractMiddleware {
         try {
             var fileContents = File.ReadAllBytes(fileName);
             context.httpContext.Response.ContentLength64 = fileContents.Length;
+            context.httpContext.Response.Headers.Add("Content-Disposition", "attachment");
             context.outputStream.Write(fileContents);
         }
         catch(Exception ex){
