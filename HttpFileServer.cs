@@ -16,7 +16,7 @@ class HttpFileServer : AbstractMiddleware {
     bool stop = false;
     string[] fileNames = null!;
 
-    public HttpFileServer(string address, short port = 5050){
+    public HttpFileServer(string address, short port = 5050): base(null){
         this.address = address;
         this.port = port;
 
@@ -30,7 +30,7 @@ class HttpFileServer : AbstractMiddleware {
         middlewares.next = null;
     }
 
-    public HttpFileServer Use<T>(T middleware) where T : AbstractMiddleware {
+    public HttpFileServer Use(AbstractMiddleware middleware) {
         middleware.next = middlewares;
         middlewares = middleware;
         return this;
