@@ -21,7 +21,7 @@ class HttpFileServer : AbstractMiddleware {
         this.port = port;
 
         fileNames = Directory.GetFiles(".")
-            .Select((fileName) => fileName.Split("/")[1])
+            .Select((fileName) => fileName.Split(Path.DirectorySeparatorChar)[1])
             .ToArray();
 
         listener = new HttpListener();
