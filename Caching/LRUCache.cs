@@ -6,46 +6,53 @@ public class LRUCache {
     CacheNode? head, tail;
     Dictionary<int, CacheNode?> map;
 
+    object locker;
+
     public LRUCache(int capacity = 32) {
         this.capacity = capacity;
         this.numElements = 0;
         head = tail = null;
         map = new Dictionary<int, CacheNode?>();
+        locker = new object();
     }
 
     public void insert(int key, byte[] value) {
-        var response = map.GetValueOrDefault(key);
-        if(response != null) {
-            map[key]!.Value = value;
-            moveToHead(response);
-            return;
-        }
-        if(numElements < capacity) {
-            head = new CacheNode(key, value, null, head);
-            if(head.next != null){
-                head.next.prev = head;
+        lock(locker){
+            var response = map.GetValueOrDefault(key);
+            if(response != null) {
+                map[key]!.Value = value;
+                moveToHead(response);
+                return;
             }
-            numElements++;
-            if(numElements == 1) {
-                tail = head;
+            if(numElements < capacity) {
+                head = new CacheNode(key, value, null, head);
+                if(head.next != null){
+                    head.next.prev = head;
+                }
+                numElements++;
+                if(numElements == 1) {
+                    tail = head;
+                }
             }
+            else {
+                var lastItem = map.GetValueOrDefault(tail!.Key);
+                map.Remove(lastItem!.Key);
+                moveToHead(lastItem);
+                head!.Key = key;
+                head.Value = value;
+            }
+            map.Add(key, head);
         }
-        else {
-            var lastItem = map.GetValueOrDefault(tail!.Key);
-            map.Remove(lastItem!.Key);
-            moveToHead(lastItem);
-            head!.Key = key;
-            head.Value = value;
-        }
-        map.Add(key, head);
     }
 
     public byte[]? get(int key) {
         var item = map.GetValueOrDefault(key);
-        if(item == null) {
-            return null;
+        lock(locker){
+            if(item == null) {
+                return null;
+            }
+            moveToHead(item);
         }
-        moveToHead(item);
         return item.Value;
     }
 

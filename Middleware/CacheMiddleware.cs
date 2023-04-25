@@ -32,9 +32,7 @@ public class CacheMiddleware : AbstractMiddleware {
             }
             StartColor();
             Console.WriteLine("Saving response to cache");
-            lock(locker){
-                cache.insert(key, context.outputStream.GetBuffer());
-            }
+            cache.insert(key, context.outputStream.GetBuffer());
         }
         Console.WriteLine("[Caching middleware end]");
         StopColor();
