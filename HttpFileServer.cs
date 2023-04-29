@@ -42,9 +42,9 @@ class HttpFileServer : AbstractMiddleware {
             Console.WriteLine($"Started listening @ http://{address}:{port}");
             while(!stop) {
                 var context = listener.GetContext();
-                ThreadPool.QueueUserWorkItem(async (state) => {
+                ThreadPool.QueueUserWorkItem((state) => {
                     Context fakeContext = new Context(context);
-                    await Task.Run(() => middlewares.HandleRequest(fakeContext));
+                    middlewares.HandleRequest(fakeContext);
                     context.Response.OutputStream.Write(fakeContext.outputStream.GetBuffer());
                     context.Response.Close();
                 });
@@ -55,7 +55,7 @@ class HttpFileServer : AbstractMiddleware {
         }
     }
 
-    public override async Task HandleRequest(Context ctx) {
+    public override void HandleRequest(Context ctx) {
         var req = ctx.httpContext.Request;
         var res = ctx.httpContext.Response;
         string fileName = req.RawUrl!.Split("/")[1];
@@ -77,7 +77,7 @@ class HttpFileServer : AbstractMiddleware {
             ctx.outputStream.Write(Encoding.ASCII.GetBytes(responseBody));
         }
         else {
-            await Task.Run(() => WriteFile(ctx, fileName));
+            WriteFile(ctx, fileName);
         } 
     }
 

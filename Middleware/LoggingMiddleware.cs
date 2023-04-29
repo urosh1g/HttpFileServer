@@ -7,7 +7,7 @@ public class LoggingMiddleware : AbstractMiddleware {
     public LoggingMiddleware(ColorScheme? colorScheme = null, AbstractMiddleware? next = null) : base(colorScheme, next) {
 
     }
-    public override async Task HandleRequest(Context context){
+    public override void HandleRequest(Context context){
         var req = context.httpContext.Request;
         var res = context.httpContext.Response;
         StartColor();
@@ -17,7 +17,7 @@ public class LoggingMiddleware : AbstractMiddleware {
         Console.WriteLine($"{req.Headers}");
         StopColor();
         if(next != null) {
-            await Task.Run(() => next.HandleRequest(context));
+            next.HandleRequest(context);
         }
         StartColor();
         Console.WriteLine("Sending response");

@@ -14,7 +14,7 @@ public class CacheMiddleware : AbstractMiddleware {
         cache = new LRUCache(capacity);
         locker = new object();
     }
-    public override async Task HandleRequest(Context context){
+    public override void HandleRequest(Context context){
         StartColor();
         Console.WriteLine("[Caching middleware begin]");
         int key = context.httpContext.Request.RawUrl!.GetHashCode();
@@ -28,7 +28,7 @@ public class CacheMiddleware : AbstractMiddleware {
             Console.WriteLine("Cache miss, calling next handler");
             StopColor();
             if(next != null) {
-                await Task.Run(() => next.HandleRequest(context));
+                next.HandleRequest(context);
             }
             StartColor();
             Console.WriteLine("Saving response to cache");
