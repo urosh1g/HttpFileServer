@@ -42,9 +42,9 @@ class HttpFileServer : AbstractMiddleware {
             Console.WriteLine($"Started listening @ http://{address}:{port}");
             while(!stop) {
                 var context = listener.GetContext();
-                ThreadPool.QueueUserWorkItem((state) => {
+                ThreadPool.QueueUserWorkItem(async (state) => {
                     Context fakeContext = new Context(context);
-                    middlewares.HandleRequest(fakeContext);
+                    await middlewares.HandleRequest(fakeContext);
                     context.Response.OutputStream.Write(fakeContext.outputStream.GetBuffer());
                     context.Response.Close();
                 });
@@ -55,7 +55,7 @@ class HttpFileServer : AbstractMiddleware {
         }
     }
 
-    public override void HandleRequest(Context ctx) {
+    public override async Task HandleRequest(Context ctx) {
         var req = ctx.httpContext.Request;
         var res = ctx.httpContext.Response;
         string fileName = req.RawUrl!.Split("/")[1];
@@ -77,13 +77,13 @@ class HttpFileServer : AbstractMiddleware {
             ctx.outputStream.Write(Encoding.ASCII.GetBytes(responseBody));
         }
         else {
-            WriteFile(ctx, fileName);
+            await WriteFile(ctx, fileName);
         } 
     }
 
-    private void WriteFile(Context context, string fileName){
+    private async Task WriteFile(Context context, string fileName){
         try {
-            var fileContents = File.ReadAllBytes(fileName);
+            var fileContents = await File.ReadAllBytesAsync(fileName);
             context.httpContext.Response.ContentLength64 = fileContents.Length;
             context.httpContext.Response.Headers.Add("Content-Disposition", "attachment");
             context.outputStream.Write(fileContents);

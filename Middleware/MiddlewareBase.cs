@@ -6,7 +6,7 @@ using Helpers;
 public abstract class AbstractMiddleware {
     public AbstractMiddleware? next;
     protected ColorScheme? colorScheme;
-    public abstract void HandleRequest(Context context);
+    public abstract Task HandleRequest(Context context);
 
     public AbstractMiddleware(ColorScheme? colorScheme, AbstractMiddleware? next = null) {
         this.next = next;
